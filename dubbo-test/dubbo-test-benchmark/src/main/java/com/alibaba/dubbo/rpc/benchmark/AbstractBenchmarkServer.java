@@ -55,8 +55,9 @@ public abstract class AbstractBenchmarkServer {
         url.append(maxThreads);
         Exchangers.bind(url.toString(), new ExchangeHandlerAdapter() {
 
+            @Override
             public Object reply(ExchangeChannel channel, Object message) throws RemotingException {
-                return new ResponseObject(responseSize); // 发送响应
+                return new ResponseObject(responseSize); // send response
             }
         });
     }

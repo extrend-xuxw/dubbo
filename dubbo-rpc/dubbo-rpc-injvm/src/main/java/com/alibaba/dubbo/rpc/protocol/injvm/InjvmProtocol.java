@@ -76,14 +76,17 @@ public class InjvmProtocol extends AbstractProtocol implements Protocol {
         }
     }
 
+    @Override
     public int getDefaultPort() {
         return DEFAULT_PORT;
     }
 
+    @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         return new InjvmExporter<T>(invoker, invoker.getUrl().getServiceKey(), exporterMap);
     }
 
+    @Override
     public <T> Invoker<T> refer(Class<T> serviceType, URL url) throws RpcException {
         return new InjvmInvoker<T>(serviceType, url, url.getServiceKey(), exporterMap);
     }
@@ -91,7 +94,7 @@ public class InjvmProtocol extends AbstractProtocol implements Protocol {
     public boolean isInjvmRefer(URL url) {
         final boolean isJvmRefer;
         String scope = url.getParameter(Constants.SCOPE_KEY);
-        //本身已经是jvm协议了，走正常流程就是了.
+        // Since injvm protocol is configured explicitly, we don't need to set any extra flag, use normal refer process.
         if (Constants.LOCAL_PROTOCOL.toString().equals(url.getProtocol())) {
             isJvmRefer = false;
         } else if (Constants.SCOPE_LOCAL.equals(scope) || (url.getParameter("injvm", false))) {

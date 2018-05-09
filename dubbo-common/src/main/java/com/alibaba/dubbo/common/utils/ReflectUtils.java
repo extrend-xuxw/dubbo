@@ -252,12 +252,12 @@ public final class ReflectUtils {
         try {
             ParameterizedType parameterizedType = ((ParameterizedType) cls.getGenericInterfaces()[0]);
             Object genericClass = parameterizedType.getActualTypeArguments()[i];
-            if (genericClass instanceof ParameterizedType) { // 处理多级泛型
+            if (genericClass instanceof ParameterizedType) { // handle nested generic type
                 return (Class<?>) ((ParameterizedType) genericClass).getRawType();
-            } else if (genericClass instanceof GenericArrayType) { // 处理数组泛型
+            } else if (genericClass instanceof GenericArrayType) { // handle array generic type
                 return (Class<?>) ((GenericArrayType) genericClass).getGenericComponentType();
             } else if (((Class) genericClass).isArray()) {
-                // 在 JDK 7 以上的版本, Foo<int[]> 不再是 GenericArrayType
+                // Requires JDK 7 or higher, Foo<int[]> is no longer GenericArrayType
                 return ((Class) genericClass).getComponentType();
             } else {
                 return (Class<?>) genericClass;
@@ -910,6 +910,9 @@ public final class ReflectUtils {
                 while (cls != null && cls != Object.class) {
                     Field[] fields = cls.getDeclaredFields();
                     for (Field field : fields) {
+                        if (field.isSynthetic()) {
+                            continue;
+                        }
                         Object property = getEmptyObject(field.getType(), emptyInstances, level + 1);
                         if (property != null) {
                             try {

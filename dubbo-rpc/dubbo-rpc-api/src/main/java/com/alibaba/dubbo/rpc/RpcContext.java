@@ -75,6 +75,11 @@ public class RpcContext {
     @Deprecated
     private Invocation invocation;
 
+    // now we don't use the 'values' map to hold these objects
+    // we want these objects to be as generic as possible
+    private Object request;
+    private Object response;
+
     protected RpcContext() {
     }
 
@@ -97,27 +102,59 @@ public class RpcContext {
     }
 
     /**
+     * Get the request object of the underlying RPC protocol, e.g. HttpServletRequest
+     *
+     * @return null if the underlying protocol doesn't provide support for getting request
+     */
+    public Object getRequest() {
+        return request;
+    }
+
+    /**
+     * Get the request object of the underlying RPC protocol, e.g. HttpServletRequest
+     *
+     * @return null if the underlying protocol doesn't provide support for getting request or the request is not of the specified type
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getRequest(Class<T> clazz) {
+        return (request != null && clazz.isAssignableFrom(request.getClass())) ? (T) request : null;
+    }
+
+
+    public void setRequest(Object request) {
+        this.request = request;
+    }
+
+    /**
+     * Get the response object of the underlying RPC protocol, e.g. HttpServletResponse
+     *
+     * @return null if the underlying protocol doesn't provide support for getting response
+     */
+    public Object getResponse() {
+        return response;
+    }
+
+    /**
+     * Get the response object of the underlying RPC protocol, e.g. HttpServletResponse
+     *
+     * @return null if the underlying protocol doesn't provide support for getting response or the response is not of the specified type
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getResponse(Class<T> clazz) {
+        return (response != null && clazz.isAssignableFrom(response.getClass())) ? (T) response : null;
+    }
+
+    public void setResponse(Object response) {
+        this.response = response;
+    }
+
+    /**
      * is provider side.
      *
      * @return provider side.
      */
     public boolean isProviderSide() {
-        URL url = getUrl();
-        if (url == null) {
-            return false;
-        }
-        InetSocketAddress address = getRemoteAddress();
-        if (address == null) {
-            return false;
-        }
-        String host;
-        if (address.getAddress() == null) {
-            host = address.getHostName();
-        } else {
-            host = address.getAddress().getHostAddress();
-        }
-        return url.getPort() != address.getPort() ||
-                !NetUtils.filterLocalHost(url.getIp()).equals(NetUtils.filterLocalHost(host));
+        return !isConsumerSide();
     }
 
     /**
@@ -126,22 +163,7 @@ public class RpcContext {
      * @return consumer side.
      */
     public boolean isConsumerSide() {
-        URL url = getUrl();
-        if (url == null) {
-            return false;
-        }
-        InetSocketAddress address = getRemoteAddress();
-        if (address == null) {
-            return false;
-        }
-        String host;
-        if (address.getAddress() == null) {
-            host = address.getHostName();
-        } else {
-            host = address.getAddress().getHostAddress();
-        }
-        return url.getPort() == address.getPort() &&
-                NetUtils.filterLocalHost(url.getIp()).equals(NetUtils.filterLocalHost(host));
+        return getUrl().getParameter(Constants.SIDE_KEY, Constants.PROVIDER_SIDE).equals(Constants.CONSUMER_SIDE);
     }
 
     /**
@@ -505,7 +527,7 @@ public class RpcContext {
 
     public RpcContext setInvokers(List<Invoker<?>> invokers) {
         this.invokers = invokers;
-        if (invokers != null && invokers.size() > 0) {
+        if (invokers != null && !invokers.isEmpty()) {
             List<URL> urls = new ArrayList<URL>(invokers.size());
             for (Invoker<?> invoker : invokers) {
                 urls.add(invoker.getUrl());
@@ -561,9 +583,10 @@ public class RpcContext {
             try {
                 setAttachment(Constants.ASYNC_KEY, Boolean.TRUE.toString());
                 final T o = callable.call();
-                //local调用会直接返回结果.
+                //local invoke will return directly
                 if (o != null) {
                     FutureTask<T> f = new FutureTask<T>(new Callable<T>() {
+                        @Override
                         public T call() throws Exception {
                             return o;
                         }
@@ -580,22 +603,27 @@ public class RpcContext {
             }
         } catch (final RpcException e) {
             return new Future<T>() {
+                @Override
                 public boolean cancel(boolean mayInterruptIfRunning) {
                     return false;
                 }
 
+                @Override
                 public boolean isCancelled() {
                     return false;
                 }
 
+                @Override
                 public boolean isDone() {
                     return true;
                 }
 
+                @Override
                 public T get() throws InterruptedException, ExecutionException {
                     throw new ExecutionException(e.getCause());
                 }
 
+                @Override
                 public T get(long timeout, TimeUnit unit)
                         throws InterruptedException, ExecutionException,
                         TimeoutException {

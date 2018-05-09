@@ -55,14 +55,14 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
     private final Lock connectLock = new ReentrantLock();
     private final boolean send_reconnect;
     private final AtomicInteger reconnect_count = new AtomicInteger(0);
-    //重连的error日志是否已经被调用过.
+    // Reconnection error log has been called before?
     private final AtomicBoolean reconnect_error_log_flag = new AtomicBoolean(false);
-    //reconnect warning period 重连warning的间隔.(waring多少次之后，warning一次) //for test
+    // reconnect warning period. Reconnect warning interval (log warning after how many times) //for test
     private final int reconnect_warning_period;
     private final long shutdown_timeout;
     protected volatile ExecutorService executor;
     private volatile ScheduledFuture<?> reconnectExecutorFuture = null;
-    //the last successed connected time
+    // the last successed connected time
     private long lastConnectedTime = System.currentTimeMillis();
 
 
@@ -73,7 +73,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
 
         shutdown_timeout = url.getParameter(Constants.SHUTDOWN_TIMEOUT_KEY, Constants.DEFAULT_SHUTDOWN_TIMEOUT);
 
-        //默认重连间隔2s，1800表示1小时warning一次.
+        // The default reconnection interval is 2s, 1800 means warning interval is 1 hour.
         reconnect_warning_period = url.getParameter("reconnect.waring.period", 1800);
 
         try {
@@ -149,6 +149,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         int reconnect = getReconnectParam(getUrl());
         if (reconnect > 0 && (reconnectExecutorFuture == null || reconnectExecutorFuture.isCancelled())) {
             Runnable connectStatusCheckCommand = new Runnable() {
+                @Override
                 public void run() {
                     try {
                         if (!isConnected()) {
@@ -195,6 +196,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         return new InetSocketAddress(NetUtils.filterLocalHost(getUrl().getHost()), getUrl().getPort());
     }
 
+    @Override
     public InetSocketAddress getRemoteAddress() {
         Channel channel = getChannel();
         if (channel == null)
@@ -202,6 +204,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         return channel.getRemoteAddress();
     }
 
+    @Override
     public InetSocketAddress getLocalAddress() {
         Channel channel = getChannel();
         if (channel == null)
@@ -209,6 +212,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         return channel.getLocalAddress();
     }
 
+    @Override
     public boolean isConnected() {
         Channel channel = getChannel();
         if (channel == null)
@@ -216,6 +220,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         return channel.isConnected();
     }
 
+    @Override
     public Object getAttribute(String key) {
         Channel channel = getChannel();
         if (channel == null)
@@ -223,6 +228,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         return channel.getAttribute(key);
     }
 
+    @Override
     public void setAttribute(String key, Object value) {
         Channel channel = getChannel();
         if (channel == null)
@@ -230,6 +236,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         channel.setAttribute(key, value);
     }
 
+    @Override
     public void removeAttribute(String key) {
         Channel channel = getChannel();
         if (channel == null)
@@ -237,6 +244,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         channel.removeAttribute(key);
     }
 
+    @Override
     public boolean hasAttribute(String key) {
         Channel channel = getChannel();
         if (channel == null)
@@ -244,12 +252,13 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         return channel.hasAttribute(key);
     }
 
+    @Override
     public void send(Object message, boolean sent) throws RemotingException {
         if (send_reconnect && !isConnected()) {
             connect();
         }
         Channel channel = getChannel();
-        //TODO getChannel返回的状态是否包含null需要改进
+        //TODO Can the value returned by getChannel() be null? need improvement.
         if (channel == null || !channel.isConnected()) {
             throw new RemotingException(this, "message can not send, because channel is closed . url:" + getUrl());
         }
@@ -310,11 +319,13 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         }
     }
 
+    @Override
     public void reconnect() throws RemotingException {
         disconnect();
         connect();
     }
 
+    @Override
     public void close() {
         try {
             if (executor != null) {
@@ -340,6 +351,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         }
     }
 
+    @Override
     public void close(int timeout) {
         ExecutorUtil.gracefulShutdown(executor, timeout);
         close();

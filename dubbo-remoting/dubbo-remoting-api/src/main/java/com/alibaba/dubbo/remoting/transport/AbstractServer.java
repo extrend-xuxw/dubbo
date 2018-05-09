@@ -77,6 +77,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
 
     protected abstract void doClose() throws Throwable;
 
+    @Override
     public void reset(URL url) {
         if (url == null) {
             return;
@@ -128,6 +129,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
         super.setUrl(getUrl().addParameters(url.getParameters()));
     }
 
+    @Override
     public void send(Object message, boolean sent) throws RemotingException {
         Collection<Channel> channels = getChannels();
         for (Channel channel : channels) {
@@ -137,6 +139,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
         }
     }
 
+    @Override
     public void close() {
         if (logger.isInfoEnabled()) {
             logger.info("Close " + getClass().getSimpleName() + " bind " + getBindAddress() + ", export " + getLocalAddress());
@@ -154,11 +157,13 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
         }
     }
 
+    @Override
     public void close(int timeout) {
         ExecutorUtil.gracefulShutdown(executor, timeout);
         close();
     }
 
+    @Override
     public InetSocketAddress getLocalAddress() {
         return localAddress;
     }
@@ -177,7 +182,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
 
     @Override
     public void connected(Channel ch) throws RemotingException {
-        // 如果server已进入关闭流程，拒绝新的连接
+        // If the server has entered the shutdown process, reject any new connection
         if (this.isClosing() || this.isClosed()) {
             logger.warn("Close new channel " + ch + ", cause: server is closing or has been closed. For example, receive a new connect request while in shutdown process.");
             ch.close();
@@ -196,7 +201,7 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
     @Override
     public void disconnected(Channel ch) throws RemotingException {
         Collection<Channel> channels = getChannels();
-        if (channels.size() == 0) {
+        if (channels.isEmpty()) {
             logger.warn("All clients has discontected from " + ch.getLocalAddress() + ". You can graceful shutdown now.");
         }
         super.disconnected(ch);

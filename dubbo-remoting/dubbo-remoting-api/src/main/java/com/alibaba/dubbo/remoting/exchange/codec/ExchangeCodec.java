@@ -20,6 +20,7 @@ import com.alibaba.dubbo.common.io.Bytes;
 import com.alibaba.dubbo.common.io.StreamUtils;
 import com.alibaba.dubbo.common.logger.Logger;
 import com.alibaba.dubbo.common.logger.LoggerFactory;
+import com.alibaba.dubbo.common.serialize.Cleanable;
 import com.alibaba.dubbo.common.serialize.ObjectInput;
 import com.alibaba.dubbo.common.serialize.ObjectOutput;
 import com.alibaba.dubbo.common.serialize.Serialization;
@@ -64,6 +65,7 @@ public class ExchangeCodec extends TelnetCodec {
         return MAGIC;
     }
 
+    @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object msg) throws IOException {
         if (msg instanceof Request) {
             encodeRequest(channel, buffer, (Request) msg);
@@ -74,6 +76,7 @@ public class ExchangeCodec extends TelnetCodec {
         }
     }
 
+    @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
         int readable = buffer.readableBytes();
         byte[] header = new byte[Math.min(readable, HEADER_LENGTH)];
@@ -81,6 +84,7 @@ public class ExchangeCodec extends TelnetCodec {
         return decode(channel, buffer, readable, header);
     }
 
+    @Override
     protected Object decode(Channel channel, ChannelBuffer buffer, int readable, byte[] header) throws IOException {
         // check magic number.
         if (readable > 0 && header[0] != MAGIC_HIGH
@@ -230,6 +234,9 @@ public class ExchangeCodec extends TelnetCodec {
             encodeRequestData(channel, out, req.getData());
         }
         out.flushBuffer();
+        if (out instanceof Cleanable) {
+            ((Cleanable) out).cleanup();
+        }
         bos.flush();
         bos.close();
         int len = bos.writtenBytes();
@@ -271,6 +278,9 @@ public class ExchangeCodec extends TelnetCodec {
                 }
             } else out.writeUTF(res.getErrorMessage());
             out.flushBuffer();
+            if (out instanceof Cleanable) {
+                ((Cleanable) out).cleanup();
+            }
             bos.flush();
             bos.close();
 
@@ -282,9 +292,9 @@ public class ExchangeCodec extends TelnetCodec {
             buffer.writeBytes(header); // write header.
             buffer.writerIndex(savedWriteIndex + HEADER_LENGTH + len);
         } catch (Throwable t) {
-            // 将buffer内容清空
+            // clear buffer
             buffer.writerIndex(savedWriteIndex);
-            // 发送失败信息给Consumer，否则Consumer只能等超时了
+            // send error message to Consumer, otherwise, Consumer will wait till timeout.
             if (!res.isEvent() && res.getStatus() != Response.BAD_RESPONSE) {
                 Response r = new Response(res.getId(), res.getVersion());
                 r.setStatus(Response.BAD_RESPONSE);
@@ -299,7 +309,7 @@ public class ExchangeCodec extends TelnetCodec {
                         logger.warn("Failed to send bad_response info back: " + t.getMessage() + ", cause: " + e.getMessage(), e);
                     }
                 } else {
-                    // FIXME 在Codec中打印出错日志？在IoHanndler的caught中统一处理？
+                    // FIXME log error message in Codec and handle in caught() of IoHanndler?
                     logger.warn("Fail to encode response: " + res + ", send bad_response info instead, cause: " + t.getMessage(), t);
                     try {
                         r.setErrorMessage("Failed to send response: " + res + ", cause: " + StringUtils.toString(t));
@@ -311,7 +321,7 @@ public class ExchangeCodec extends TelnetCodec {
                 }
             }
 
-            // 重新抛出收到的异常
+            // Rethrow exception
             if (t instanceof IOException) {
                 throw (IOException) t;
             } else if (t instanceof RuntimeException) {

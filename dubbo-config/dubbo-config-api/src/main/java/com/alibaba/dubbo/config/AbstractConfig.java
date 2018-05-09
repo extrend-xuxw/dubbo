@@ -60,7 +60,7 @@ public abstract class AbstractConfig implements Serializable {
 
     private static final Pattern PATTERN_KEY = Pattern.compile("[*,\\-._0-9a-zA-Z]+");
     private static final Map<String, String> legacyProperties = new HashMap<String, String>();
-    private static final String[] SUFFIXS = new String[]{"Config", "Bean"};
+    private static final String[] SUFFIXES = new String[]{"Config", "Bean"};
 
     static {
         legacyProperties.put("dubbo.protocol.name", "dubbo.service.protocol");
@@ -75,6 +75,7 @@ public abstract class AbstractConfig implements Serializable {
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
             public void run() {
                 if (logger.isInfoEnabled()) {
                     logger.info("Run shutdown hook now.");
@@ -166,7 +167,7 @@ public abstract class AbstractConfig implements Serializable {
 
     private static String getTagName(Class<?> cls) {
         String tag = cls.getSimpleName();
-        for (String suffix : SUFFIXS) {
+        for (String suffix : SUFFIXES) {
             if (tag.endsWith(suffix)) {
                 tag = tag.substring(0, tag.length() - suffix.length());
                 break;
@@ -213,11 +214,11 @@ public abstract class AbstractConfig implements Serializable {
                             str = URL.encode(str);
                         }
                         if (parameter != null && parameter.append()) {
-                            String pre = (String) parameters.get(Constants.DEFAULT_KEY + "." + key);
+                            String pre = parameters.get(Constants.DEFAULT_KEY + "." + key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;
                             }
-                            pre = (String) parameters.get(key);
+                            pre = parameters.get(key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;
                             }
@@ -268,7 +269,7 @@ public abstract class AbstractConfig implements Serializable {
                     if (parameter == null || !parameter.attribute())
                         continue;
                     String key;
-                    if (parameter != null && parameter.key() != null && parameter.key().length() > 0) {
+                    if (parameter.key() != null && parameter.key().length() > 0) {
                         key = parameter.key();
                     } else {
                         int i = name.startsWith("get") ? 3 : 2;
@@ -386,7 +387,6 @@ public abstract class AbstractConfig implements Serializable {
             return;
         }
         for (Map.Entry<String, String> entry : parameters.entrySet()) {
-            //change by tony.chenl parameter value maybe has colon.for example napoli address
             checkNameHasSymbol(entry.getKey(), entry.getValue());
         }
     }
@@ -401,7 +401,8 @@ public abstract class AbstractConfig implements Serializable {
         if (pattern != null) {
             Matcher matcher = pattern.matcher(value);
             if (!matcher.matches()) {
-                throw new IllegalStateException("Invalid " + property + "=\"" + value + "\" contain illegal charactor, only digit, letter, '-', '_' and '.' is legal.");
+                throw new IllegalStateException("Invalid " + property + "=\"" + value + "\" contains illegal " +
+                        "character, only digit, letter, '-', '_' or '.' is legal.");
             }
         }
     }

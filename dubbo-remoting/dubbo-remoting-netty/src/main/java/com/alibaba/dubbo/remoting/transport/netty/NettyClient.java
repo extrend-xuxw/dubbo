@@ -70,6 +70,7 @@ public class NettyClient extends AbstractClient {
         bootstrap.setOption("connectTimeoutMillis", getTimeout());
         final NettyHandler nettyHandler = new NettyHandler(getUrl(), this);
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+            @Override
             public ChannelPipeline getPipeline() {
                 NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyClient.this);
                 ChannelPipeline pipeline = Channels.pipeline();
@@ -81,6 +82,7 @@ public class NettyClient extends AbstractClient {
         });
     }
 
+    @Override
     protected void doConnect() throws Throwable {
         long start = System.currentTimeMillis();
         ChannelFuture future = bootstrap.connect(getConnectAddress());
@@ -91,7 +93,7 @@ public class NettyClient extends AbstractClient {
                 Channel newChannel = future.getChannel();
                 newChannel.setInterestOps(Channel.OP_READ_WRITE);
                 try {
-                    // 关闭旧的连接
+                    // Close old channel
                     Channel oldChannel = NettyClient.this.channel; // copy reference
                     if (oldChannel != null) {
                         try {

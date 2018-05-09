@@ -52,7 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>192.168.1.3:20880<br>
  * for this case, url protocol = null, url host = 192.168.1.3, port = 20880, url path = null
  * <li>file:///home/user1/router.js?type=script<br>
- * for this case, url protocol = null, url host = null, url path = home/user1/router.js
+ * for this case, url protocol = file, url host = null, url path = home/user1/router.js
  * <li>file://home/user1/router.js?type=script<br>
  * for this case, url protocol = file, url host = home, url path = user1/router.js
  * <li>file:///D:/1/router.js?type=script<br>
@@ -78,8 +78,10 @@ public final class URL implements Serializable {
 
     private final String password;
 
+    // by default, host to registry
     private final String host;
 
+    // by default, port to registry
     private final int port;
 
     private final String path;
@@ -116,7 +118,7 @@ public final class URL implements Serializable {
         this(protocol, null, null, host, port, null, (Map<String, String>) null);
     }
 
-    public URL(String protocol, String host, int port, String[] pairs) { // 变长参数...与下面的path参数冲突，改为数组
+    public URL(String protocol, String host, int port, String[] pairs) { // varargs ... confilict with the following path argument, use array instead.
         this(protocol, null, null, host, port, null, CollectionUtils.toStringMap(pairs));
     }
 
@@ -1021,7 +1023,7 @@ public final class URL implements Serializable {
     }
 
     public URL removeParameters(Collection<String> keys) {
-        if (keys == null || keys.size() == 0) {
+        if (keys == null || keys.isEmpty()) {
             return this;
         }
         return removeParameters(keys.toArray(new String[0]));
@@ -1078,6 +1080,7 @@ public final class URL implements Serializable {
         return map;
     }
 
+    @Override
     public String toString() {
         if (string != null) {
             return string;

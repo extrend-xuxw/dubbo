@@ -25,9 +25,6 @@ import com.alibaba.dubbo.remoting.exchange.Request;
 
 import java.util.Collection;
 
-/**
- *
- */
 final class HeartBeatTask implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(HeartBeatTask.class);
@@ -44,6 +41,7 @@ final class HeartBeatTask implements Runnable {
         this.heartbeatTimeout = heartbeatTimeout;
     }
 
+    @Override
     public void run() {
         try {
             long now = System.currentTimeMillis();

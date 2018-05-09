@@ -104,7 +104,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
 
     protected void checkRegistry() {
         // for backward compatibility
-        if (registries == null || registries.size() == 0) {
+        if (registries == null || registries.isEmpty()) {
             String address = ConfigUtils.getProperty("dubbo.registry.address");
             if (address != null && address.length() > 0) {
                 registries = new ArrayList<RegistryConfig>();
@@ -116,7 +116,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 }
             }
         }
-        if ((registries == null || registries.size() == 0)) {
+        if ((registries == null || registries.isEmpty())) {
             throw new IllegalStateException((getClass().getSimpleName().startsWith("Reference")
                     ? "No such any registry to refer service in consumer "
                     : "No such any registry to export service in provider ")
@@ -159,7 +159,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     protected List<URL> loadRegistries(boolean provider) {
         checkRegistry();
         List<URL> registryList = new ArrayList<URL>();
-        if (registries != null && registries.size() > 0) {
+        if (registries != null && !registries.isEmpty()) {
             for (RegistryConfig config : registries) {
                 String address = config.getAddress();
                 if (address == null || address.length() == 0) {
@@ -169,8 +169,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 if (sysaddress != null && sysaddress.length() > 0) {
                     address = sysaddress;
                 }
-                if (address != null && address.length() > 0
-                        && !RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
+                if (address.length() > 0 && !RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
                     Map<String, String> map = new HashMap<String, String>();
                     appendParameters(map, application);
                     appendParameters(map, config);
@@ -256,8 +255,8 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         if (!interfaceClass.isInterface()) {
             throw new IllegalStateException("The interface class " + interfaceClass + " is not a interface!");
         }
-        // 检查方法是否在接口中存在
-        if (methods != null && methods.size() > 0) {
+        // check if methods exist in the interface
+        if (methods != null && !methods.isEmpty()) {
             for (MethodConfig methodBean : methods) {
                 String methodName = methodBean.getName();
                 if (methodName == null || methodName.length() == 0) {
@@ -360,7 +359,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     public void setStub(Boolean stub) {
-        if (local == null) {
+        if (stub == null) {
             setStub((String) null);
         } else {
             setStub(String.valueOf(stub));
@@ -410,11 +409,11 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
 
     @Parameter(key = Constants.INVOKER_LISTENER_KEY, append = true)
     public String getListener() {
-        checkMultiExtension(InvokerListener.class, "listener", listener);
         return listener;
     }
 
     public void setListener(String listener) {
+        checkMultiExtension(InvokerListener.class, "listener", listener);
         this.listener = listener;
     }
 
@@ -444,7 +443,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     public RegistryConfig getRegistry() {
-        return registries == null || registries.size() == 0 ? null : registries.get(0);
+        return registries == null || registries.isEmpty() ? null : registries.get(0);
     }
 
     public void setRegistry(RegistryConfig registry) {

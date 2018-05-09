@@ -27,9 +27,6 @@ import com.alibaba.dubbo.remoting.buffer.ChannelBuffer;
 
 import java.io.IOException;
 
-/**
- *
- */
 public class CodecAdapter implements Codec2 {
 
     private Codec codec;
@@ -39,6 +36,7 @@ public class CodecAdapter implements Codec2 {
         this.codec = codec;
     }
 
+    @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object message)
             throws IOException {
         UnsafeByteArrayOutputStream os = new UnsafeByteArrayOutputStream(1024);
@@ -46,6 +44,7 @@ public class CodecAdapter implements Codec2 {
         buffer.writeBytes(os.toByteArray());
     }
 
+    @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
         byte[] bytes = new byte[buffer.readableBytes()];
         int savedReaderIndex = buffer.readerIndex();

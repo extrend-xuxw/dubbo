@@ -16,9 +16,16 @@
  */
 package com.alibaba.dubbo.config.spring;
 
-import com.alibaba.dubbo.config.*;
+import com.alibaba.dubbo.config.ApplicationConfig;
+import com.alibaba.dubbo.config.ModuleConfig;
+import com.alibaba.dubbo.config.MonitorConfig;
+import com.alibaba.dubbo.config.ProtocolConfig;
+import com.alibaba.dubbo.config.ProviderConfig;
+import com.alibaba.dubbo.config.RegistryConfig;
+import com.alibaba.dubbo.config.ServiceConfig;
 import com.alibaba.dubbo.config.annotation.Service;
 import com.alibaba.dubbo.config.spring.extension.SpringExtensionFactory;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.DisposableBean;
@@ -67,19 +74,20 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return SPRING_CONTEXT;
     }
 
+    @Override
     public void setApplicationContext(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         SpringExtensionFactory.addApplicationContext(applicationContext);
         if (applicationContext != null) {
             SPRING_CONTEXT = applicationContext;
             try {
-                Method method = applicationContext.getClass().getMethod("addApplicationListener", new Class<?>[]{ApplicationListener.class}); // 兼容Spring2.0.1
+                Method method = applicationContext.getClass().getMethod("addApplicationListener", new Class<?>[]{ApplicationListener.class}); // backward compatibility to spring 2.0.1
                 method.invoke(applicationContext, new Object[]{this});
                 supportedApplicationListener = true;
             } catch (Throwable t) {
                 if (applicationContext instanceof AbstractApplicationContext) {
                     try {
-                        Method method = AbstractApplicationContext.class.getDeclaredMethod("addListener", new Class<?>[]{ApplicationListener.class}); // compatible with Spring2.0.1
+                        Method method = AbstractApplicationContext.class.getDeclaredMethod("addListener", new Class<?>[]{ApplicationListener.class}); // backward compatibility to spring 2.0.1
                         if (!method.isAccessible()) {
                             method.setAccessible(true);
                         }
@@ -92,6 +100,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         }
     }
 
+    @Override
     public void setBeanName(String name) {
         this.beanName = name;
     }
@@ -105,6 +114,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return service;
     }
 
+    @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         if (isDelay() && !isExported() && !isUnexported()) {
             if (logger.isInfoEnabled()) {
@@ -123,6 +133,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         return supportedApplicationListener && (delay == null || delay == -1);
     }
 
+    @Override
     @SuppressWarnings({"unchecked", "deprecation"})
     public void afterPropertiesSet() throws Exception {
         if (getProvider() == null) {
@@ -137,7 +148,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                             providerConfigs.add(config);
                         }
                     }
-                    if (providerConfigs.size() > 0) {
+                    if (!providerConfigs.isEmpty()) {
                         setProviders(providerConfigs);
                     }
                 } else {
@@ -192,9 +203,9 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                 }
             }
         }
-        if ((getRegistries() == null || getRegistries().size() == 0)
-                && (getProvider() == null || getProvider().getRegistries() == null || getProvider().getRegistries().size() == 0)
-                && (getApplication() == null || getApplication().getRegistries() == null || getApplication().getRegistries().size() == 0)) {
+        if ((getRegistries() == null || getRegistries().isEmpty())
+                && (getProvider() == null || getProvider().getRegistries() == null || getProvider().getRegistries().isEmpty())
+                && (getApplication() == null || getApplication().getRegistries() == null || getApplication().getRegistries().isEmpty())) {
             Map<String, RegistryConfig> registryConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, RegistryConfig.class, false, false);
             if (registryConfigMap != null && registryConfigMap.size() > 0) {
                 List<RegistryConfig> registryConfigs = new ArrayList<RegistryConfig>();
@@ -203,7 +214,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                         registryConfigs.add(config);
                     }
                 }
-                if (registryConfigs != null && registryConfigs.size() > 0) {
+                if (registryConfigs != null && !registryConfigs.isEmpty()) {
                     super.setRegistries(registryConfigs);
                 }
             }
@@ -227,8 +238,8 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                 }
             }
         }
-        if ((getProtocols() == null || getProtocols().size() == 0)
-                && (getProvider() == null || getProvider().getProtocols() == null || getProvider().getProtocols().size() == 0)) {
+        if ((getProtocols() == null || getProtocols().isEmpty())
+                && (getProvider() == null || getProvider().getProtocols() == null || getProvider().getProtocols().isEmpty())) {
             Map<String, ProtocolConfig> protocolConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ProtocolConfig.class, false, false);
             if (protocolConfigMap != null && protocolConfigMap.size() > 0) {
                 List<ProtocolConfig> protocolConfigs = new ArrayList<ProtocolConfig>();
@@ -237,7 +248,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                         protocolConfigs.add(config);
                     }
                 }
-                if (protocolConfigs != null && protocolConfigs.size() > 0) {
+                if (protocolConfigs != null && !protocolConfigs.isEmpty()) {
                     super.setProtocols(protocolConfigs);
                 }
             }
@@ -254,8 +265,19 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         }
     }
 
+    @Override
     public void destroy() throws Exception {
-        unexport();
+        // This will only be called for singleton scope bean, and expected to be called by spring shutdown hook when BeanFactory/ApplicationContext destroys.
+        // We will guarantee dubbo related resources being released with dubbo shutdown hook.
+        //unexport();
     }
 
+    // merged from dubbox
+    @Override
+    protected Class getServiceClass(T ref) {
+        if (AopUtils.isAopProxy(ref)) {
+            return AopUtils.getTargetClass(ref);
+        }
+        return super.getServiceClass(ref);
+    }
 }

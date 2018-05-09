@@ -19,9 +19,6 @@ package com.alibaba.dubbo.remoting.buffer;
 
 import java.nio.ByteBuffer;
 
-/**
- *
- */
 public class HeapChannelBufferFactory implements ChannelBufferFactory {
 
     private static final HeapChannelBufferFactory INSTANCE = new HeapChannelBufferFactory();
@@ -34,14 +31,17 @@ public class HeapChannelBufferFactory implements ChannelBufferFactory {
         return INSTANCE;
     }
 
+    @Override
     public ChannelBuffer getBuffer(int capacity) {
         return ChannelBuffers.buffer(capacity);
     }
 
+    @Override
     public ChannelBuffer getBuffer(byte[] array, int offset, int length) {
         return ChannelBuffers.wrappedBuffer(array, offset, length);
     }
 
+    @Override
     public ChannelBuffer getBuffer(ByteBuffer nioBuffer) {
         if (nioBuffer.hasArray()) {
             return ChannelBuffers.wrappedBuffer(nioBuffer);
